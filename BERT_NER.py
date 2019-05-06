@@ -25,9 +25,8 @@ FLAGS = flags.FLAGS
 
 ## Required parameters
 flags.DEFINE_string(
-    "data_dir", None,
-    "The input data dir. Should contain the .tsv files (or other data files) "
-    "for the task.")
+    "train_file", None,
+    "Path to processed training file")
 
 flags.DEFINE_string(
     "bert_config_file", None,
@@ -61,14 +60,6 @@ flags.DEFINE_integer(
     "The maximum total input sequence length after WordPiece tokenization. "
     "Sequences longer than this will be truncated, and sequences shorter "
     "than this will be padded.")
-
-flags.DEFINE_bool("do_train", False, "Whether to run training.")
-
-flags.DEFINE_bool("do_eval", False, "Whether to run eval on the dev set.")
-
-flags.DEFINE_bool(
-    "do_predict", False,
-    "Whether to run the model in inference mode on the test set.")
 
 flags.DEFINE_integer("train_batch_size", 32, "Total batch size for training.")
 
@@ -507,8 +498,6 @@ def Writer(output_predict_file, result, batch_tokens, batch_labels, id2label):
 
 def main(_):
     logging.set_verbosity(logging.INFO)
-    if not FLAGS.do_train and not FLAGS.do_eval:
-        raise ValueError("At least one of `do_train` or `do_eval` must be True.")
     bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
     if FLAGS.max_seq_length > bert_config.max_position_embeddings:
         raise ValueError(
@@ -534,13 +523,9 @@ def main(_):
             iterations_per_loop=FLAGS.iterations_per_loop,
             num_shards=FLAGS.num_tpu_cores,
             per_host_input_for_training=is_per_host))
-    train_examples = None
-    num_train_steps = None
-    num_warmup_steps = None
 
-    if FLAGS.do_train:
-        num_train_steps = int(FLAGS.num_train_examples / FLAGS.train_batch_size * FLAGS.num_train_epochs)
-        num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
+    num_train_steps = int(FLAGS.num_train_examples / FLAGS.train_batch_size * FLAGS.num_train_epochs)
+    num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
     model_fn = model_fn_builder(
         bert_config=bert_config,
         num_labels=len(label_list),
@@ -558,80 +543,20 @@ def main(_):
         eval_batch_size=FLAGS.eval_batch_size,
         predict_batch_size=FLAGS.predict_batch_size)
 
-    if FLAGS.do_train:
-        train_file = os.path.join(FLAGS.output_dir, "train.tf_record")
-        _, _ = filed_based_convert_examples_to_features(
-            train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
-        logging.info("***** Running training *****")
-        logging.info("  Num examples = %d", len(train_examples))
-        logging.info("  Batch size = %d", FLAGS.train_batch_size)
-        logging.info("  Num steps = %d", num_train_steps)
-        train_input_fn = file_based_input_fn_builder(
-            input_file=train_file,
-            seq_length=FLAGS.max_seq_length,
-            is_training=True,
-            drop_remainder=True)
-        estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
-    if FLAGS.do_eval:
-        # eval_examples = processor.get_dev_examples(FLAGS.data_dir)
-        eval_file = os.path.join(FLAGS.output_dir, "eval.tf_record")
-        batch_tokens, batch_labels = filed_based_convert_examples_to_features(
-            eval_examples, label_list, FLAGS.max_seq_length, tokenizer, eval_file)
-
-        logging.info("***** Running evaluation *****")
-        logging.info("  Num examples = %d", len(eval_examples))
-        logging.info("  Batch size = %d", FLAGS.eval_batch_size)
-        # if FLAGS.use_tpu:
-        #     eval_steps = int(len(eval_examples) / FLAGS.eval_batch_size)
-        # eval_drop_remainder = True if FLAGS.use_tpu else False
-        eval_input_fn = file_based_input_fn_builder(
-            input_file=eval_file,
-            seq_length=FLAGS.max_seq_length,
-            is_training=False,
-            drop_remainder=False)
-        result = estimator.evaluate(input_fn=eval_input_fn)
-        output_eval_file = os.path.join(FLAGS.output_dir, "eval_results.txt")
-        with open(output_eval_file, "w") as wf:
-            logging.info("***** Eval results *****")
-            confusion_matrix = result["confusion_matrix"]
-            p, r, f = metrics.calculate(confusion_matrix, len(label_list) - 1)
-            logging.info("***********************************************")
-            logging.info("********************P = %s*********************", str(p))
-            logging.info("********************R = %s*********************", str(r))
-            logging.info("********************F = %s*********************", str(f))
-            logging.info("***********************************************")
-
-    if FLAGS.do_predict:
-        with open(FLAGS.middle_output + '/label2id.pkl', 'rb') as rf:
-            label2id = pickle.load(rf)
-            id2label = {value: key for key, value in label2id.items()}
-
-        predict_examples = processor.get_test_examples(FLAGS.data_dir)
-
-        predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
-        batch_tokens, batch_labels = filed_based_convert_examples_to_features(predict_examples, label_list,
-                                                                              FLAGS.max_seq_length, tokenizer,
-                                                                              predict_file)
-
-        logging.info("***** Running prediction*****")
-        logging.info("  Num examples = %d", len(predict_examples))
-        logging.info("  Batch size = %d", FLAGS.predict_batch_size)
-
-        predict_input_fn = file_based_input_fn_builder(
-            input_file=predict_file,
-            seq_length=FLAGS.max_seq_length,
-            is_training=False,
-            drop_remainder=False)
-
-        result = estimator.predict(input_fn=predict_input_fn)
-        output_predict_file = os.path.join(FLAGS.output_dir, "label_test.txt")
-        # here if the tag is "X" means it belong to its before token, here for convenient evaluate use
-        # conlleval.pl we  discarding it directly
-        Writer(output_predict_file, result, batch_tokens, batch_labels, id2label)
+    logging.info("***** Running training *****")
+    logging.info("  Num examples = %d", flags.num_train_examples)
+    logging.info("  Batch size = %d", FLAGS.train_batch_size)
+    logging.info("  Num steps = %d", num_train_steps)
+    train_input_fn = file_based_input_fn_builder(
+        input_file=flags.train_file,
+        seq_length=FLAGS.max_seq_length,
+        is_training=True,
+        drop_remainder=True)
+    estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
 
 
 if __name__ == "__main__":
-    flags.mark_flag_as_required("data_dir")
+    flags.mark_flag_as_required("train_file")
     flags.mark_flag_as_required("vocab_file")
     flags.mark_flag_as_required("bert_config_file")
     flags.mark_flag_as_required("output_dir")
