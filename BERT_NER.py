@@ -34,8 +34,6 @@ flags.DEFINE_string(
     "The config json file corresponding to the pre-trained BERT model. "
     "This specifies the model architecture.")
 
-flags.DEFINE_string("task_name", None, "The name of the task to train.")
-
 flags.DEFINE_string("vocab_file", None,
                     "The vocabulary file that the BERT model was trained on.")
 
@@ -169,79 +167,6 @@ class InputFeatures(object):
         self.segment_ids = segment_ids
         self.label_ids = label_ids
         self.is_real_example = is_real_example
-
-
-class DataProcessor(object):
-    """Base class for data converters for sequence classification data sets."""
-
-    def get_train_examples(self, data_dir):
-        """Gets a collection of `InputExample`s for the train set."""
-        raise NotImplementedError()
-
-    def get_dev_examples(self, data_dir):
-        """Gets a collection of `InputExample`s for the dev set."""
-        raise NotImplementedError()
-
-    def get_labels(self):
-        """Gets the list of labels for this data set."""
-        raise NotImplementedError()
-
-    @classmethod
-    def _read_data(cls, input_file):
-        """Read a BIO data!"""
-        rf = open(input_file, 'r')
-        lines = [];
-        words = [];
-        labels = []
-        for line in rf:
-            word = line.strip().split(' ')[0]
-            label = line.strip().split(' ')[-1]
-            # here we dont do "DOCSTART" check
-            if len(line.strip()) == 0 and words[-1] == '.':
-                l = ' '.join([label for label in labels if len(label) > 0])
-                w = ' '.join([word for word in words if len(word) > 0])
-                lines.append((l, w))
-                words = []
-                labels = []
-            words.append(word)
-            labels.append(label)
-        rf.close()
-        return lines
-
-
-class NerProcessor(DataProcessor):
-    def get_train_examples(self, data_dir):
-        return self._create_example(
-            self._read_data(os.path.join(data_dir, "train.txt")), "train"
-        )
-
-    def get_dev_examples(self, data_dir):
-        return self._create_example(
-            self._read_data(os.path.join(data_dir, "dev.txt")), "dev"
-        )
-
-    def get_test_examples(self, data_dir):
-        return self._create_example(
-            self._read_data(os.path.join(data_dir, "test.txt")), "test"
-        )
-
-    def get_labels(self):
-        """
-        here "X" used to represent "##eer","##soo" and so on!
-        "[PAD]" for padding
-        :return:
-        """
-        return ["[PAD]", "B-MISC", "I-MISC", "O", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC", "X", "[CLS]",
-                "[SEP]"]
-
-    def _create_example(self, lines, set_type):
-        examples = []
-        for (i, line) in enumerate(lines):
-            guid = "%s-%s" % (set_type, i)
-            texts = tokenization.convert_to_unicode(line[1])
-            labels = tokenization.convert_to_unicode(line[0])
-            examples.append(InputExample(guid=guid, text=texts, label=labels))
-        return examples
 
 
 def get_labels():
@@ -706,7 +631,6 @@ def main(_):
 
 if __name__ == "__main__":
     flags.mark_flag_as_required("data_dir")
-    flags.mark_flag_as_required("task_name")
     flags.mark_flag_as_required("vocab_file")
     flags.mark_flag_as_required("bert_config_file")
     flags.mark_flag_as_required("output_dir")
