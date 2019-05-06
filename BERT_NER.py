@@ -507,8 +507,6 @@ def main(_):
 
     label_list = get_labels()
 
-    tokenizer = tokenization.FullTokenizer(
-        vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
     tpu_cluster_resolver = None
     if FLAGS.use_tpu and FLAGS.tpu_name:
         tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
@@ -524,10 +522,9 @@ def main(_):
             num_shards=FLAGS.num_tpu_cores,
             per_host_input_for_training=is_per_host))
 
-    num_train_steps = int(FLAGS.num_train_examples / FLAGS.train_batch_size * FLAGS.num_train_epochs)
-    num_train_steps = None if num_train_steps == 0 else num_train_steps
+    print(FLAGS.num_train_examples, FLAGS.train_batch_size, FLAGS.num_train_epochs)
+    num_train_steps = FLAGS.num_train_examples / FLAGS.train_batch_size * FLAGS.num_train_epochs
     num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
-    num_warmup_steps = 0 if num_warmup_steps == None else num_warmup_steps
     model_fn = model_fn_builder(
         bert_config=bert_config,
         num_labels=len(label_list),
