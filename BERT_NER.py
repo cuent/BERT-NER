@@ -28,6 +28,10 @@ flags.DEFINE_string(
     "train_file", None,
     "Path to processed training file")
 
+flags.DEFINE_integer(
+    "num_train_examples", None,
+    "Number of examples used for training the model.")
+
 flags.DEFINE_string(
     "bert_config_file", None,
     "The config json file corresponding to the pre-trained BERT model. "
@@ -108,10 +112,6 @@ flags.DEFINE_string("master", None, "[Optional] TensorFlow master URL.")
 flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
-
-flags.DEFINE_integer(
-    "num_train_examples", -1,
-    "Number of examples used for training the model.")
 
 flags.DEFINE_string("middle_output", "middle_data", "Dir was used to store middle data!")
 flags.DEFINE_string("crf", "True", "use crf!")
