@@ -118,6 +118,10 @@ flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
+flags.DEFINE_integer(
+    "num_train_examples", -1,
+    "Number of examples used for training the model.")
+
 flags.DEFINE_string("middle_output", "middle_data", "Dir was used to store middle data!")
 flags.DEFINE_string("crf", "True", "use crf!")
 
@@ -535,10 +539,7 @@ def main(_):
     num_warmup_steps = None
 
     if FLAGS.do_train:
-        train_examples = 2
-
-        num_train_steps = int(
-            len(train_examples) / FLAGS.train_batch_size * FLAGS.num_train_epochs)
+        num_train_steps = int(FLAGS.num_train_examples / FLAGS.train_batch_size * FLAGS.num_train_epochs)
         num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
     model_fn = model_fn_builder(
         bert_config=bert_config,
@@ -634,4 +635,5 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("vocab_file")
     flags.mark_flag_as_required("bert_config_file")
     flags.mark_flag_as_required("output_dir")
+    flags.mark_flag_as_required("num_train_examples")
     tf.app.run()
