@@ -527,6 +527,7 @@ def main(_):
     num_train_steps = int(FLAGS.num_train_examples / FLAGS.train_batch_size * FLAGS.num_train_epochs)
     num_train_steps = None if num_train_steps == 0 else num_train_steps
     num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
+    num_warmup_steps = 0 if num_warmup_steps == None else num_warmup_steps
     model_fn = model_fn_builder(
         bert_config=bert_config,
         num_labels=len(label_list),
