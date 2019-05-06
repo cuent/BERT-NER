@@ -525,6 +525,7 @@ def main(_):
             per_host_input_for_training=is_per_host))
 
     num_train_steps = int(FLAGS.num_train_examples / FLAGS.train_batch_size * FLAGS.num_train_epochs)
+    num_train_steps = None if num_train_steps == 0 else num_train_steps
     num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
     model_fn = model_fn_builder(
         bert_config=bert_config,
