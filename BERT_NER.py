@@ -40,6 +40,11 @@ flags.DEFINE_string(
 flags.DEFINE_string("vocab_file", None,
                     "The vocabulary file that the BERT model was trained on.")
 
+flags.DEFINE_list("label_list", ['[PAD]', 'B-product_characteristics', 'U-product_color', 'U-product_category',
+                                 'L-product_characteristics', 'U-product_brand', '-', 'U-product_characteristics',
+                                 'B-product_brand', 'L-product_brand', 'O', 'X', '[CLS]', '[SEP]'],
+                  "labels used in preprocessing.")
+
 flags.DEFINE_string(
     "output_dir", None,
     "The output directory where the model checkpoints will be written.")
@@ -505,7 +510,7 @@ def main(_):
             "was only trained up to sequence length %d" %
             (FLAGS.max_seq_length, bert_config.max_position_embeddings))
 
-    label_list = get_labels()
+    label_list = FLAGS.label_list  # get_labels()
 
     tpu_cluster_resolver = None
     if FLAGS.use_tpu and FLAGS.tpu_name:
