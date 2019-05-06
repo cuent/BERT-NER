@@ -544,11 +544,11 @@ def main(_):
         predict_batch_size=FLAGS.predict_batch_size)
 
     logging.info("***** Running training *****")
-    logging.info("  Num examples = %d", flags.num_train_examples)
+    logging.info("  Num examples = %d", FLAGS.num_train_examples)
     logging.info("  Batch size = %d", FLAGS.train_batch_size)
     logging.info("  Num steps = %d", num_train_steps)
     train_input_fn = file_based_input_fn_builder(
-        input_file=flags.train_file,
+        input_file=FLAGS.train_file,
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
